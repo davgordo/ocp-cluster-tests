@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: docker-build-inline-imagestream
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: example
+    name: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: example:latest
+    runPolicy: Serial
+    source:
+      dockerfile: "FROM registry.access.redhat.com/rhel7:latest \nCMD exec /bin/bash -c \"sleep infinity & wait\""
+      type: Dockerfile
+    strategy:
+      dockerStrategy: {}
+      type: Docker
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: example
+    name: example
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: example
+    name: example
+  spec:
+    replicas: 1
+    selector:
+      app: example
+      deploymentconfig: example
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: example
+          deploymentconfig: example
+      spec:
+        containers:
+        - image: ' '
+          imagePullPolicy: Always
+          name: example
+    test: false
+    triggers:
+    - imageChangeParams:
+        containerNames:
+        - example
+        from:
+          kind: ImageStreamTag
+          name: example:latest
+      type: ImageChange
